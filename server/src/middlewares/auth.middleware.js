@@ -37,7 +37,7 @@ module.exports.authSystemUserMiddleware=async function(req,res,next){
         })
     }
 
-    const isBlacklisted = await tokenBlackListModel.findOne({ token })
+    const isBlacklisted = await tokenBlacklistModel.findOne({ token })
 
     if (isBlacklisted) {
         return res.status(401).json({
@@ -46,7 +46,7 @@ module.exports.authSystemUserMiddleware=async function(req,res,next){
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET)
+        const decoded = jwt.verify(token, process.env.JWT_KEY)
 
         const user = await userModel.findById(decoded.userId).select("+systemUser")
         if (!user.systemUser) {

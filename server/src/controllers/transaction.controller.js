@@ -11,8 +11,8 @@ module.exports.createTransaction=async function(req,res){
             message:"fromAccount, toAccount, amount and idempotencyKey are required "
         })
     }
-    let fromUserAccount=await accountModel.findOne({id:fromAccount});
-    let toUserAccount=await accountModel.findOne({_id:toAccount});
+    let fromUserAccount=await accountModel.findById(fromAccount);
+    let toUserAccount=await accountModel.findById(toAccount);
     if(!fromUserAccount || !toUserAccount){
         return res.status(400).json({
             message:"Invalid fromAccount or toAccount"
@@ -47,7 +47,7 @@ module.exports.createTransaction=async function(req,res){
         })
     }
 
-    const balance =fromUserAccount.getBalance();
+    const balance =await fromUserAccount.getBalance();
     if(balance<amount){
         return res.status(400).json({
             message:`Balance is insufficient. Current balance is ${balance}.Requested amount is ${amount}`
@@ -55,7 +55,7 @@ module.exports.createTransaction=async function(req,res){
     }
     let transaction;
     try{
-        const session=await mongoose.session();
+        const session=await mongoose.startSession();
         session.startTransaction();
         transaction=(await transactionModel.create([{
             fromAccount,
@@ -72,7 +72,7 @@ module.exports.createTransaction=async function(req,res){
         }],{session})
 
         await (()=>{
-            return new Promise((resolve)=> setTimeout(resolve,100*1000));
+            return new Promise((resolve)=> setTimeout(resolve,2000));
         }) ()
 
         const creditLedgerEntry=await ledgerModel.create([{
@@ -81,14 +81,14 @@ module.exports.createTransaction=async function(req,res){
             amount:amount,
             transaction:transaction._id
         }],{session})
-        transaction.status="COMPLETED";
 
 
 
-        await transactionModel.findOneAndUpdate({
-            _id:transaction._id,
-            status:"COMPLETED"
-        },{session})
+
+        await transactionModel.findByIdAndUpdate(
+            transaction._id,
+            {status:"COMPLETED"},
+            {session})
 
         await session.commitTransaction();
         session.endSession();
@@ -133,8 +133,8 @@ module.exports.createInitialFundsTransaction=async function(req,res){
             message:"toAccount needs to be ACTIVE"
         })
     }
-    const session=mongoose.startSession();
-    await session.startTransaction;
+    const session=await mongoose.startSession();
+    await session.startTransaction();
     const transaction=new transactionModel({
         fromAccount:fromUserAccount._id,
         toAccount,
