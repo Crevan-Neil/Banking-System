@@ -12,12 +12,14 @@ app.use(cookie());
 app.use(cors({
   origin: [
     "http://localhost:3000",
-    "https://your-frontend-name.onrender.com"
+    "https://banking-system-1-muxn.onrender.com"
   ],
   credentials: true
 }));
 
-
+app.get("/", (req, res) => {
+  res.status(200).send("Backend is live 🚀");
+});
 app.use("/api/auth",authRouter);
 app.use("/api/accounts",accountRouter);
 app.use("/api/transactions", transactionRouter);
